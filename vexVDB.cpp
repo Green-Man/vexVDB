@@ -184,10 +184,12 @@ static void divide_string(int, void *argv[], void *)
     char myString[3];
     strcpy(myString ,"foo");
 
+    cout << myString << endl;
+
     wbuf.strcpy(myString);
     //VEX_VexOp::stringFree((const char *)argv[0]);
 
-    argv[0] = VEX_VexOp::stringAlloc(wbuf.buffer());
+    //argv[0] = VEX_VexOp::stringAlloc(wbuf.buffer());
 }
 
 void newVEXOp(void *)

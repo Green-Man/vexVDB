@@ -15,7 +15,7 @@
 SOURCES = vexVDB.cpp
 DSONAME	= vexVDB.so
 #   APPNAME	Name of the desires output application (if applicable)
-INSTDIR = ~/houdini12.5/dso/vex
+INSTDIR = ~/houdini12.5
 #   ICONS	Name of the icon files to install (optionial)
 
 OS_NAME := $(shell uname -s)
