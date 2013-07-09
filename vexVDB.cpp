@@ -177,25 +177,21 @@ using namespace std;
 //                 NULL,                   // Cleanup function
 //                 VEX_OPTIMIZE_0);        // Optimization level
 
-static void divide_string(int, void *argv[], void *)
+
+void stringDivide(int argc, void *argv[], void *)
 {
-    UT_WorkBuffer   wbuf;
-
-    char myString[3];
-    strcpy(myString ,"foo");
-
-    cout << myString << endl;
-
-    wbuf.strcpy(myString);
-    //VEX_VexOp::stringFree((const char *)argv[0]);
-
-    //argv[0] = VEX_VexOp::stringAlloc(wbuf.buffer());
+    UT_WorkBuffer buffer;
+    buffer.strcpy((char *)argv[1]);
+    buffer.strcat((char *)argv[2]);
+    
+    VEX_VexOp::stringFree((char *)argv[0]);
+    argv[0] = (void *)VEX_VexOp::stringAlloc( buffer.buffer() );
 }
 
 void newVEXOp(void *)
 {
-    new VEX_VexOp ( "string_divide@&SS",
-                    divide_string,
+    new VEX_VexOp ( "stringDivide@&SSS",
+                    stringDivide,
                     VEX_ALL_CONTEXT,
                     NULL,
                     NULL);
