@@ -37,6 +37,8 @@
 #include <UT/UT_WorkBuffer.h>
 
 #include <cstring>
+#include <UT/UT_Regex.h>
+#include <UT/UT_String.h>
 
 using namespace std;
 //namespace HDK_Sample {
@@ -180,12 +182,33 @@ using namespace std;
 
 void stringDivide(int argc, void *argv[], void *)
 {
+
+
+
     UT_WorkBuffer buffer;
     buffer.strcpy((char *)argv[1]);
     buffer.strcat((char *)argv[2]);
+    //buffer.strcat((char *)"***");
     
     VEX_VexOp::stringFree((char *)argv[0]);
     argv[0] = (void *)VEX_VexOp::stringAlloc( buffer.buffer() );
+}
+
+
+void isUDIM(int argc, void *argv[], void *)
+{
+    //Read regexp from first parm
+    UT_Regex pattern( ( char* )argv[1] );
+    int* result = ( int* )argv[0];
+
+    //Split path
+    UT_String fullPath((char *)argv[2]);
+    UT_String fileName = fullPath.fileName();
+    UT_String fileExt = fullPath.fileExtension();
+    
+    *result = pattern.search(( char* )fileName);
+
+
 }
 
 void newVEXOp(void *)
@@ -195,6 +218,12 @@ void newVEXOp(void *)
                     VEX_ALL_CONTEXT,
                     NULL,
                     NULL);
+    new VEX_VexOp ( "isUDIM@&ISS",
+                    isUDIM,
+                    VEX_ALL_CONTEXT,
+                    NULL,
+                    NULL);
+
 }
 
 // time_Evaluate(int, void *argv[], void *)
