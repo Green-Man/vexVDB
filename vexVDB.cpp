@@ -182,9 +182,6 @@ using namespace std;
 
 void stringDivide(int argc, void *argv[], void *)
 {
-
-
-
     UT_WorkBuffer buffer;
     buffer.strcpy((char *)argv[1]);
     buffer.strcat((char *)argv[2]);
@@ -195,19 +192,37 @@ void stringDivide(int argc, void *argv[], void *)
 }
 
 
-void isUDIM(int argc, void *argv[], void *)
+void splitUDIMPath(int argc, void *argv[], void *)
 {
-    //Read regexp from first parm
-    UT_Regex pattern( ( char* )argv[1] );
-    int* result = ( int* )argv[0];
+    //Read path from 1st parm and split it
+    UT_String fullPath((char *)argv[0]);
+    UT_String fileName = fullPath.pathUpToExtension();
+    
 
-    //Split path
-    UT_String fullPath((char *)argv[2]);
-    UT_String fileName = fullPath.fileName();
     UT_String fileExt = fullPath.fileExtension();
     
-    *result = pattern.search(( char* )fileName);
+    //Read regexp from 2nd parm
+    UT_Regex pattern( ( char* )argv[1] );    
+    UT_String suffix;
+    UT_WorkBuffer buf;
+    if( pattern.search(( char* )fileName) )
+    {
+        suffix = "_u1_v1";
+        pattern.replace(buf, fileName, "");
+        fileName = buf.buffer(); 
+    }
+    else
+    {
+        suffix = "";
+    }
 
+    VEX_VexOp::stringFree((char *)argv[2]);
+    VEX_VexOp::stringFree((char *)argv[3]);
+    VEX_VexOp::stringFree((char *)argv[4]);
+
+    argv[2] = (void *)VEX_VexOp::stringAlloc( fileName );
+    argv[3] = (void *)VEX_VexOp::stringAlloc( suffix );
+    argv[4] = (void *)VEX_VexOp::stringAlloc( fileExt );
 
 }
 
@@ -218,8 +233,8 @@ void newVEXOp(void *)
                     VEX_ALL_CONTEXT,
                     NULL,
                     NULL);
-    new VEX_VexOp ( "isUDIM@&ISS",
-                    isUDIM,
+    new VEX_VexOp ( "splitUDIMPath@SS&S&S&S",
+                    splitUDIMPath,
                     VEX_ALL_CONTEXT,
                     NULL,
                     NULL);
