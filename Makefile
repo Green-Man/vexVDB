@@ -10,12 +10,10 @@
 #
 # Complete list of variables used by this file:
 #   OPTIMIZER	Override the optimization level (optional, defaults to -O2)
-INCDIRS	= -Iinclude/openvdb_dev
-#LIBDIRS	= -L$(HFS)/dsolib
-LIBS = -lopenvdb
+#   INCDIRS	Specify any additional include directories.
+#   LIBDIRS	Specify any addition library include directories
 SOURCES = vexVDB.cpp
 DSONAME	= vexVDB.so
-SHADERNAME = readVDB
 #   APPNAME	Name of the desires output application (if applicable)
 INSTDIR = ~/houdini12.5
 #   ICONS	Name of the icon files to install (optionial)
@@ -84,7 +82,6 @@ else
 %.o:		%.cpp
 	$(CC) $(CXXFLAGS) $(OBJFLAGS) $< $(OBJOUTPUT) $@
 
-
 $(APPNAME):	$(OBJECTS) $(MBSD_GC_OBJ)
 	$(LINK) $(LDFLAGS) $(OBJECTS) $(MBSD_GC_OBJ) $(SAFLAGS) $(SAOUTPUT) $@
 
@@ -110,7 +107,6 @@ ifdef DSONAME
 install:	default	icons
 	@mkdir -p $(INSTDIR)/dso
 	@cp $(DSONAME) $(INSTDIR)/dso
-	vcc -L $(INSTDIR)/otls/$(SHADERNAME).otl $(SHADERNAME).vfl
 else
 install:	default icons
 endif

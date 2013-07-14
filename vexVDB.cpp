@@ -37,55 +37,70 @@
 #include <UT/UT_WorkBuffer.h>
 
 #include <cstring>
-#include <UT/UT_DirUtil.h>
+#include <UT/UT_Regex.h>
 #include <UT/UT_String.h>
-#include <UT/UT_Vector.h>
-
-#include <openvdb/openvdb.h>
 
 using namespace std;
+//namespace HDK_Sample {
 
+// #if !defined(WIN32)
+// static void
+// drand_Evaluate(int, void *argv[], void *)
+// {
+//     float       *result = (float *)argv[0];
+//     const int   *seed = (const int *)argv[1];
 
+//     srand48(*seed);
+//     *result = drand48();
+// }
+// #endif
 
+// static void
+// time_Evaluate(int, void *argv[], void *)
+// {
+//     int         *result = (int *)argv[0];
 
+//     *result = time(0);
+// }
 
-class vdbGrid {
-public:
-     vdbGrid() { }
-    ~vdbGrid() { }
+// // Simple class to show shared storage.  A single gamma table is shared between
+// // all instances of the gamma() function.
+// class gamma_Table {
+// public:
+//      gamma_Table() : myRefCount(1) { }
+//     ~gamma_Table() { }
 
-    //float       evaluate(float v)       { return 0; }
+//     float       evaluate(float v)       { return 0; }
 
-    //int         myRefCount;
-};
+//     int         myRefCount;
+// };
 
-static vdbGrid      *oneGrid = NULL;
+// static gamma_Table      *theGammaTable = NULL;
 
-static void *
-pre_readVDB()
-{
+// static void *
+// gamma_Init()
+// {
 
-    // if (!theGammaTable)
-    //     theGammaTable = new gamma_Table();
-    // else
-    //     theGammaTable->myRefCount++;
-    // return theGammaTable;
-    return NULL;
-}
+//     if (!theGammaTable)
+//         theGammaTable = new gamma_Table();
+//     else
+//         theGammaTable->myRefCount++;
+//     return theGammaTable;
+// }
 
-static void
-post_readVDB(void *data)
-{
-    // gamma_Table *table = (gamma_Table *)data;
+// static void
+// gamma_Cleanup(void *data)
+// {
+//     gamma_Table *table = (gamma_Table *)data;
 
-    // UT_ASSERT(table == theGammaTable);
-    // table->myRefCount--;
-    // if (!table->myRefCount)
-    // {
-    //     delete table;
-    //     theGammaTable = NULL;
-    // }
-}
+//     UT_ASSERT(table == theGammaTable);
+//     table->myRefCount--;
+//     if (!table->myRefCount)
+//     {
+//         delete table;
+//         theGammaTable = NULL;
+//     }
+// }
 
 // static void
 // gamma_Evaluate(int, void *argv[], void *data)
@@ -97,78 +112,138 @@ post_readVDB(void *data)
 //     *result = table->evaluate(*value);
 // }
 
+// static void
+// myprint_Evaluate(int argc, VEX_VexOpArg argv[], void *data)
+// {
+//     printf("%d args:\n", argc);
+//     for (int i = 0; i < argc; i++)
+//     {
+//         if (argv[i].myArray)
+//             continue; // Doesn't support arrays
+//         switch (argv[i].myType)
+//         {
+//             case VEX_TYPE_INTEGER:
+//                 printf("  int %d\n", *(const int *)argv[i].myArg);
+//                 break;
+//             case VEX_TYPE_FLOAT:
+//                 printf("  float %f\n", *(const float *)argv[i].myArg);
+//                 break;
+//             case VEX_TYPE_STRING:
+//                 printf("  string %s\n", (const char *)argv[i].myArg);
+//                 break;
+//             default:
+//                 break;
+//         }
+//     }
+// }
+
+// }
+
+// //
+// // Installation function
+// //
+// using namespace HDK_Sample;
+// void
+// newVEXOp(void *)
+// {
+// #if !defined(WIN32)
+//     //  Returns a random number based on the seed argument
+//     new VEX_VexOp("drand@&FI",          // Signature
+//                 drand_Evaluate,         // Evaluator
+//                 VEX_ALL_CONTEXT,        // Context mask
+//                 NULL,                   // init function
+//                 NULL);                  // cleanup function
+// #endif
+
+//     // Return the time() function.  This is non-deterministic, so the
+//     // optimization level has to be lowered.
+//     new VEX_VexOp("time@&I",            // Signature
+//                 time_Evaluate,          // Evaluator
+//                 VEX_ALL_CONTEXT,        // Context mask
+//                 NULL,                   // init function
+//                 NULL,                   // cleanup function
+//                 VEX_OPTIMIZE_1);        // Optimization level
+
+//     // Use the default optimization (better performance)
+//     new VEX_VexOp("gamma@&FF",          // Signature
+//                 gamma_Evaluate,         // Evaluator
+//                 VEX_ALL_CONTEXT,        // Context mask
+//                 gamma_Init,             // init function
+//                 gamma_Cleanup);         // Cleanup function
+
+//     // A variadic function to print integers and floats
+//     new VEX_VexOp("myprint@+",          // Signature
+//                 myprint_Evaluate,       // Evaluator
+//                 VEX_ALL_CONTEXT,        // Context mask
+//                 NULL,                   // init function
+//                 NULL,                   // Cleanup function
+//                 VEX_OPTIMIZE_0);        // Optimization level
 
 
-
-
-
-
-void readVDB(int argc, void *argv[], void *)
+void stringDivide(int argc, void *argv[], void *)
 {
-
-    float* result = (float *)argv[0];
-    const char* filepath( (const char *)argv[1] );
-    const UT_Vector3* worldCoord = (const UT_Vector3 *)argv[2];
-    const bool isFilepathValid = UTisValidRegularFile( filepath );
-    //printf("0: %i\n", isFilepathValid);
-    openvdb::initialize();
-    //printf("1: %i\n", isFilepathValid);
-
-    //float value = 0.001;
-    //float* cellValue;
+    UT_WorkBuffer buffer;
+    buffer.strcpy((char *)argv[1]);
+    buffer.strcat((char *)argv[2]);
+    //buffer.strcat((char *)"***");
     
-    //*cellValue = value;
-    float pAccesedValue = 0;
-    if( isFilepathValid == 1 )
-    {   
-        //printf("foo\n");
-        //printf("1: %s\n", filepath);
-        openvdb::io::File file( filepath );
+    VEX_VexOp::stringFree((char *)argv[0]);
+    argv[0] = (void *)VEX_VexOp::stringAlloc( buffer.buffer() );
+}
 
-        file.open();
-        openvdb::GridBase::Ptr baseGrid;
-        baseGrid = file.readGrid("density");
-        //printf("%s\n", baseGrid->type());
-        //cout << baseGrid->activeVoxelCount () << endl;
 
-        const openvdb::Vec3d samplePosition(worldCoord->x(),worldCoord->y(),worldCoord->z());
-        const openvdb::Vec3i indexPosition = baseGrid->worldToIndex(samplePosition);
-        //printf("pos: %4.2f %4.2f %4.2f\n", worldCoord->x(), worldCoord->y(), worldCoord->z());
-        //printf("index: %4.2i %4.2i %4.2i\n\n", indexPosition[0], indexPosition[1], indexPosition[2]);
+void splitUDIMPath(int argc, void *argv[], void *)
+{
+    //Read path from 1st parm and split it
+    UT_String fullPath((char *)argv[0]);
+    UT_String fileName = fullPath.pathUpToExtension();
+    
 
-        openvdb::FloatGrid::Ptr grid = openvdb::gridPtrCast<openvdb::FloatGrid>(baseGrid);
-        openvdb::FloatGrid::Accessor accessor = grid->getAccessor();
-        const openvdb::Coord xyz(indexPosition);
-        pAccesedValue = accessor.getValue(xyz);
-        //*val = pAccesedValue;
-
-        file.close();
+    UT_String fileExt = fullPath.fileExtension();
+    
+    //Read regexp from 2nd parm
+    UT_Regex pattern( ( char* )argv[1] );    
+    UT_String suffix;
+    UT_WorkBuffer buf;
+    if( pattern.search(( char* )fileName) )
+    {
+        suffix = "_u1_v1";
+        pattern.replace(buf, fileName, "");
+        fileName = buf.buffer(); 
     }
     else
     {
-        printf("Error reading file %s\n", filepath);
+        suffix = "";
     }
 
-    *result = pAccesedValue;
+    VEX_VexOp::stringFree((char *)argv[2]);
+    VEX_VexOp::stringFree((char *)argv[3]);
+    VEX_VexOp::stringFree((char *)argv[4]);
+
+    argv[2] = (void *)VEX_VexOp::stringAlloc( fileName );
+    argv[3] = (void *)VEX_VexOp::stringAlloc( suffix );
+    argv[4] = (void *)VEX_VexOp::stringAlloc( fileExt );
+
 }
 
 void newVEXOp(void *)
 {
-    // new VEX_VexOp ( "stringDivide@&SSS",
-    //                 stringDivide,
-    //                 VEX_ALL_CONTEXT,
-    //                 NULL,
-    //                 NULL);
-    // new VEX_VexOp ( "splitUDIMPath@SS&S&S&S",
-    //                 splitUDIMPath,
-    //                 VEX_ALL_CONTEXT,
-    //                 NULL,
-    //                 NULL);
-    new VEX_VexOp ( "readVDB@&FSV",
-                    readVDB,
+    new VEX_VexOp ( "stringDivide@&SSS",
+                    stringDivide,
+                    VEX_ALL_CONTEXT,
+                    NULL,
+                    NULL);
+    new VEX_VexOp ( "splitUDIMPath@SS&S&S&S",
+                    splitUDIMPath,
                     VEX_ALL_CONTEXT,
                     NULL,
                     NULL);
 
 }
 
+// time_Evaluate(int, void *argv[], void *)
+// {
+//     int         *result = (int *)argv[0];
+
+//     *result = time(0);
+// }
