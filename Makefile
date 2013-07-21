@@ -10,7 +10,7 @@
 #
 # Complete list of variables used by this file:
 #   OPTIMIZER	Override the optimization level (optional, defaults to -O2)
-INCDIRS	= -Iinclude/openvdb_dev
+INCDIRS	= -I. -Iinclude/openvdb_dev
 #LIBDIRS	= -L$(HFS)/dsolib
 LIBS = -lopenvdb
 SOURCES = vexVDB.cpp
@@ -110,6 +110,7 @@ ifdef DSONAME
 install:	default	icons
 	@mkdir -p $(INSTDIR)/dso
 	@cp $(DSONAME) $(INSTDIR)/dso
+	@mkdir -p $(INSTDIR)/otls
 	vcc -L $(INSTDIR)/otls/$(SHADERNAME).otl $(SHADERNAME).vfl
 else
 install:	default icons
