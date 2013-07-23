@@ -44,61 +44,23 @@
 // #include <openvdb/openvdb.h>
 #include <vexVDB.h>
 
+#include <openvdb/tools/Interpolation.h>
+
+
 using namespace std;
-
-
-//static vdbGrid oneGrid();
-
-//bool                    vdbGrid::fileIsOpened_ = false;
-//openvdb::io::File       vdbGrid::vdbFile_("/home/green/Downloads/teapot.vdb");
-//openvdb::GridBase::Ptr  vdbGrid::baseGrid_;// = vdbGrid::vdbFile_.readGrid("density");
-//UT_Vector3*             RainData::pointInitialPositions_;
 
 vdbGrid::vdbGrid(){
     
     openvdb::initialize();
-    vdbFile_ = new openvdb::io::File("/home/green/Downloads/teapot.vdb");
-    //printf("isOpen: %i\n", vdbFile_->isOpen());
-    //printf("file version: %li\n", (long int)vdbFile_->fileVersion());
-    //printf("openning... ");
+    vdbFile_ = new openvdb::io::File("/home/green/Downloads/smoke.vdb");
     vdbFile_->open();
-    //printf("OK\n");
     baseGrid_ = vdbFile_->readGrid("density");
-    setState(true);
+    isFileOpened_ = true;
 }
 
 vdbGrid::~vdbGrid(){
-    //printf("closing... ");    
     vdbFile_->close();
-    //printf("OK\n");
     delete vdbFile_;
-}
-
-
-void vdbGrid::initialize(const char* fileName)
-{
-    // openvdb::initialize();
-
-    // openvdb::GridBase::Ptr baseGrid_;
-
-    // printf("isOpen: %i\n", vdbFile_.isOpen());
-    // printf("openning... ");
-    // vdbFile_.open();
-    // printf("OK\n");
-    
-    // if(vdbFile_.hasGrid("density")){
-    //     printf("file version: %li\n", (long int)vdbFile_.fileVersion());
-    //     baseGrid_ = vdbFile_.readGrid("density");        
-    // }     
-
-    // setState(true);
-}
-
-void vdbGrid::cleanup(){
-    // printf("closing... ");
-    // vdbFile_.close();
-    // printf("OK\n");
-    // vdbGrid::setState(false);
 }
 
 static vdbGrid* singleGrid = NULL;
@@ -108,35 +70,15 @@ pre_readVDB()
 {
     if(!singleGrid)
         singleGrid = new vdbGrid();
-        //printf("singleGrid created\n");
     return singleGrid;
-    
-    // bool isfileNameValid = true;
-    // const char* fileName("/home/green/Downloads/teapot.vdb");
-    // bool isfileNameValid = UTisValidRegularFile( fileName );
-
-
-    // if( (singleGrid->isInitialized() == 0) && (isfileNameValid == true) )
-    // {
-    //     singleGrid->initialize(fileName);
-    // }
-    //vdbGrid oneGrid;
-
-
-    // if (!theGammaTable)
-    //     theGammaTable = new gamma_Table();
-    // else
-    //     theGammaTable->myRefCount++;
-    // return theGammaTable;
     return NULL;
 }
 
 static void
 post_readVDB(void *data)
 {
-    //vdbGrid::cleanup();
-    vdbGrid *grid = (vdbGrid*)data;
 
+    vdbGrid *grid = (vdbGrid*)data;
     UT_ASSERT(grid == singleGrid);
 
     delete grid;
@@ -145,64 +87,30 @@ post_readVDB(void *data)
 
 }
 
-// static void
-// gamma_Evaluate(int, void *argv[], void *data)
-// {
-//     float       *result = (float *)argv[0];
-//     const float *value = (const float *)argv[1];
-
-//     gamma_Table *table = (gamma_Table *)data;
-//     *result = table->evaluate(*value);
-// }
-
 
 void readVDB(int argc, void *argv[], void *data)
 {
-
     float* result = (float *)argv[0];
     const char* fileName( (const char *)argv[1] );
     const UT_Vector3* worldCoord = (const UT_Vector3 *)argv[2];
 
-    //printf("Is Initialized 1: %i\n", vdbGrid::isInitialized());
-
     vdbGrid* theGrid = (vdbGrid*)data;
 
-    //printf("Is Initialized 2:%i\n", vdbGrid::isInitialized());
-    //printf("1: %i\n", isfileNameValid);
 
-    //float value = 0.001;
-    //float* cellValue;
-    //*cellValue = value;
     float pAccesedValue = 0;
-    if(singleGrid->isInitialized())
-    {
-        // if( isfileNameValid == 1 )
-        // {   
-        //     //printf("foo\n");
-        //     //printf("1: %s\n", fileName);
-        //     openvdb::io::File file( fileName );
+    if(theGrid->isFileOpened_){
 
-        //     file.open();
-        //     openvdb::GridBase::Ptr baseGrid_;
-        //     baseGrid_ = file.readGrid("density");
-        //     //printf("%s\n", baseGrid_->type());
-        //     //cout << baseGrid_->activeVoxelCount () << endl;
-//==
         const openvdb::Vec3d samplePosition(worldCoord->x(),worldCoord->y(),worldCoord->z());
         const openvdb::Vec3i indexPosition = theGrid->baseGrid_->worldToIndex(samplePosition);
 
         openvdb::FloatGrid::Ptr grid = openvdb::gridPtrCast<openvdb::FloatGrid>(theGrid->baseGrid_);
         openvdb::FloatGrid::Accessor accessor = grid->getAccessor();
         const openvdb::Coord xyz(indexPosition);
-        pAccesedValue = accessor.getValue(xyz);
-//==
 
-        //     file.close();
-        // }
-        // else
-        // {
-        //     printf("Error reading file %s\n", fileName);
-        // }
+        //openvdb::tools::GridSampler< tree::ValueAccessor< TreeT >, SamplerType > sampler(accessor, grid->transformPtr());
+        openvdb::tools::GridSampler<openvdb::FloatTree, openvdb::tools::BoxSampler>  sampler(grid->constTree(), grid->transform());
+        pAccesedValue = sampler.wsSample(samplePosition);
+        //pAccesedValue = accessor.getValue(xyz);
 
         *result = pAccesedValue;
     }
