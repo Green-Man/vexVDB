@@ -1,6 +1,6 @@
 vexVDB
 ======
 
-vex functions to access OpenVDB grids
+vex functions to write/access OpenVDB grids
 
-This is personal/educational project in developing HDK plugin.
+This is a personal/educational project in developing HDK plugin.
