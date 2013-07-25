@@ -44,7 +44,7 @@
 // #include <openvdb/openvdb.h>
 #include <vexVDB.h>
 
-#include <openvdb/tools/Interpolation.h>
+
 
 
 using namespace std;
@@ -55,12 +55,18 @@ vdbGrid::vdbGrid(){
     vdbFile_ = new openvdb::io::File("/home/green/Downloads/smoke.vdb");
     vdbFile_->open();
     baseGrid_ = vdbFile_->readGrid("density");
+    floatGrid_ = openvdb::gridPtrCast<openvdb::FloatGrid>(baseGrid_);
+
+    filteredGrid_ = new openvdb::tools::Filter<openvdb::FloatGrid>(*floatGrid_);
+    filteredGrid_->gaussian();
+
     isFileOpened_ = true;
 }
 
 vdbGrid::~vdbGrid(){
     vdbFile_->close();
     delete vdbFile_;
+    delete filteredGrid_;
 }
 
 static vdbGrid* singleGrid = NULL;
@@ -91,26 +97,30 @@ post_readVDB(void *data)
 void readVDB(int argc, void *argv[], void *data)
 {
     float* result = (float *)argv[0];
-    const char* fileName( (const char *)argv[1] );
+    //const char* fileName( (const char *)argv[1] );
     const UT_Vector3* worldCoord = (const UT_Vector3 *)argv[2];
-
     vdbGrid* theGrid = (vdbGrid*)data;
 
 
     float pAccesedValue = 0;
     if(theGrid->isFileOpened_){
 
-        const openvdb::Vec3d samplePosition(worldCoord->x(),worldCoord->y(),worldCoord->z());
-        const openvdb::Vec3i indexPosition = theGrid->baseGrid_->worldToIndex(samplePosition);
 
-        openvdb::FloatGrid::Ptr grid = openvdb::gridPtrCast<openvdb::FloatGrid>(theGrid->baseGrid_);
-        openvdb::FloatGrid::Accessor accessor = grid->getAccessor();
+        openvdb::FloatGrid::Accessor accessor = theGrid->floatGrid_->getAccessor();
+
+        const openvdb::Vec3d samplePosition(worldCoord->x(),worldCoord->y(),worldCoord->z());
+        const openvdb::Vec3i indexPosition = theGrid->floatGrid_->worldToIndex(samplePosition);
         const openvdb::Coord xyz(indexPosition);
 
-        //openvdb::tools::GridSampler< tree::ValueAccessor< TreeT >, SamplerType > sampler(accessor, grid->transformPtr());
-        openvdb::tools::GridSampler<openvdb::FloatTree, openvdb::tools::BoxSampler>  sampler(grid->constTree(), grid->transform());
-        pAccesedValue = sampler.wsSample(samplePosition);
+
         //pAccesedValue = accessor.getValue(xyz);
+
+        //SAMPLING WORKING
+        //openvdb::tools::GridSampler<openvdb::tree::ValueAccessor<openvdb::FloatTree>, openvdb::tools::BoxSampler > sampler(accessor, grid->transform());
+        openvdb::tools::GridSampler<openvdb::FloatTree, openvdb::tools::BoxSampler>  sampler(theGrid->floatGrid_->constTree(), theGrid->floatGrid_->transform());
+        pAccesedValue = sampler.wsSample(samplePosition);
+
+
 
         *result = pAccesedValue;
     }
