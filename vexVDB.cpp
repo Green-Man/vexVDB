@@ -26,224 +26,115 @@
  * This is a sample VEX operator DSO
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <time.h>
-#include <math.h>
-#include <UT/UT_DSOVersion.h>
-#include <UT/UT_Thread.h>
-#include <VEX/VEX_VexOp.h>
-#include <UT/UT_WorkBuffer.h>
+// #include <stdio.h>
+// #include <stdlib.h>
+// #include <unistd.h>
+// #include <time.h>
+// #include <math.h>
+// #include <UT/UT_DSOVersion.h>
+// #include <UT/UT_Thread.h>
+// #include <VEX/VEX_VexOp.h>
+// #include <UT/UT_WorkBuffer.h>
 
-#include <cstring>
-#include <UT/UT_Regex.h>
-#include <UT/UT_String.h>
+// #include <cstring>
+// #include <UT/UT_DirUtil.h>
+// #include <UT/UT_String.h>
+// #include <UT/UT_Vector.h>
+
+// #include <openvdb/openvdb.h>
+#include <vexVDB.h>
 
 using namespace std;
-//namespace HDK_Sample {
-
-// #if !defined(WIN32)
-// static void
-// drand_Evaluate(int, void *argv[], void *)
-// {
-//     float       *result = (float *)argv[0];
-//     const int   *seed = (const int *)argv[1];
-
-//     srand48(*seed);
-//     *result = drand48();
-// }
-// #endif
-
-// static void
-// time_Evaluate(int, void *argv[], void *)
-// {
-//     int         *result = (int *)argv[0];
-
-//     *result = time(0);
-// }
-
-// // Simple class to show shared storage.  A single gamma table is shared between
-// // all instances of the gamma() function.
-// class gamma_Table {
-// public:
-//      gamma_Table() : myRefCount(1) { }
-//     ~gamma_Table() { }
-
-//     float       evaluate(float v)       { return 0; }
-
-//     int         myRefCount;
-// };
-
-// static gamma_Table      *theGammaTable = NULL;
-
-// static void *
-// gamma_Init()
-// {
-
-//     if (!theGammaTable)
-//         theGammaTable = new gamma_Table();
-//     else
-//         theGammaTable->myRefCount++;
-//     return theGammaTable;
-// }
-
-// static void
-// gamma_Cleanup(void *data)
-// {
-//     gamma_Table *table = (gamma_Table *)data;
-
-//     UT_ASSERT(table == theGammaTable);
-//     table->myRefCount--;
-//     if (!table->myRefCount)
-//     {
-//         delete table;
-//         theGammaTable = NULL;
-//     }
-// }
-
-// static void
-// gamma_Evaluate(int, void *argv[], void *data)
-// {
-//     float       *result = (float *)argv[0];
-//     const float *value = (const float *)argv[1];
-
-//     gamma_Table *table = (gamma_Table *)data;
-//     *result = table->evaluate(*value);
-// }
-
-// static void
-// myprint_Evaluate(int argc, VEX_VexOpArg argv[], void *data)
-// {
-//     printf("%d args:\n", argc);
-//     for (int i = 0; i < argc; i++)
-//     {
-//         if (argv[i].myArray)
-//             continue; // Doesn't support arrays
-//         switch (argv[i].myType)
-//         {
-//             case VEX_TYPE_INTEGER:
-//                 printf("  int %d\n", *(const int *)argv[i].myArg);
-//                 break;
-//             case VEX_TYPE_FLOAT:
-//                 printf("  float %f\n", *(const float *)argv[i].myArg);
-//                 break;
-//             case VEX_TYPE_STRING:
-//                 printf("  string %s\n", (const char *)argv[i].myArg);
-//                 break;
-//             default:
-//                 break;
-//         }
-//     }
-// }
-
-// }
-
-// //
-// // Installation function
-// //
-// using namespace HDK_Sample;
-// void
-// newVEXOp(void *)
-// {
-// #if !defined(WIN32)
-//     //  Returns a random number based on the seed argument
-//     new VEX_VexOp("drand@&FI",          // Signature
-//                 drand_Evaluate,         // Evaluator
-//                 VEX_ALL_CONTEXT,        // Context mask
-//                 NULL,                   // init function
-//                 NULL);                  // cleanup function
-// #endif
-
-//     // Return the time() function.  This is non-deterministic, so the
-//     // optimization level has to be lowered.
-//     new VEX_VexOp("time@&I",            // Signature
-//                 time_Evaluate,          // Evaluator
-//                 VEX_ALL_CONTEXT,        // Context mask
-//                 NULL,                   // init function
-//                 NULL,                   // cleanup function
-//                 VEX_OPTIMIZE_1);        // Optimization level
-
-//     // Use the default optimization (better performance)
-//     new VEX_VexOp("gamma@&FF",          // Signature
-//                 gamma_Evaluate,         // Evaluator
-//                 VEX_ALL_CONTEXT,        // Context mask
-//                 gamma_Init,             // init function
-//                 gamma_Cleanup);         // Cleanup function
-
-//     // A variadic function to print integers and floats
-//     new VEX_VexOp("myprint@+",          // Signature
-//                 myprint_Evaluate,       // Evaluator
-//                 VEX_ALL_CONTEXT,        // Context mask
-//                 NULL,                   // init function
-//                 NULL,                   // Cleanup function
-//                 VEX_OPTIMIZE_0);        // Optimization level
 
 
-void stringDivide(int argc, void *argv[], void *)
-{
-    UT_WorkBuffer buffer;
-    buffer.strcpy((char *)argv[1]);
-    buffer.strcat((char *)argv[2]);
-    //buffer.strcat((char *)"***");
+
+
+vdbGrid::vdbGrid(){
     
-    VEX_VexOp::stringFree((char *)argv[0]);
-    argv[0] = (void *)VEX_VexOp::stringAlloc( buffer.buffer() );
+    openvdb::initialize();
+    vdbFile_ = new openvdb::io::File("/home/green/Downloads/smoke.vdb");
+    vdbFile_->open();
+    baseGrid_ = vdbFile_->readGrid("density");
+    floatGrid_ = openvdb::gridPtrCast<openvdb::FloatGrid>(baseGrid_);
+
+    filteredGrid_ = new openvdb::tools::Filter<openvdb::FloatGrid>(*floatGrid_);
+    filteredGrid_->gaussian();
+
+    isFileOpened_ = true;
+}
+
+vdbGrid::~vdbGrid(){
+    vdbFile_->close();
+    delete vdbFile_;
+    delete filteredGrid_;
+}
+
+static vdbGrid* singleGrid = NULL;
+
+static void *
+pre_readVDB()
+{
+    if(!singleGrid)
+        singleGrid = new vdbGrid();
+    return singleGrid;
+    return NULL;
+}
+
+static void
+post_readVDB(void *data)
+{
+
+    vdbGrid *grid = (vdbGrid*)data;
+    UT_ASSERT(grid == singleGrid);
+
+    delete grid;
+    //printf("singleGrid deleted\n");
+    singleGrid = NULL;
+
 }
 
 
-void splitUDIMPath(int argc, void *argv[], void *)
+void readVDB(int argc, void *argv[], void *data)
 {
-    //Read path from 1st parm and split it
-    UT_String fullPath((char *)argv[0]);
-    UT_String fileName = fullPath.pathUpToExtension();
-    
+    float* result = (float *)argv[0];
+    //const char* fileName( (const char *)argv[1] );
+    const UT_Vector3* worldCoord = (const UT_Vector3 *)argv[2];
+    vdbGrid* theGrid = (vdbGrid*)data;
 
-    UT_String fileExt = fullPath.fileExtension();
-    
-    //Read regexp from 2nd parm
-    UT_Regex pattern( ( char* )argv[1] );    
-    UT_String suffix;
-    UT_WorkBuffer buf;
-    if( pattern.search(( char* )fileName) )
-    {
-        suffix = "_u1_v1";
-        pattern.replace(buf, fileName, "");
-        fileName = buf.buffer(); 
+
+    float pAccesedValue = 0;
+    if(theGrid->isFileOpened_){
+
+
+        openvdb::FloatGrid::Accessor accessor = theGrid->floatGrid_->getAccessor();
+
+        const openvdb::Vec3d samplePosition(worldCoord->x(),worldCoord->y(),worldCoord->z());
+        const openvdb::Vec3i indexPosition = theGrid->floatGrid_->worldToIndex(samplePosition);
+        const openvdb::Coord xyz(indexPosition);
+
+
+        //pAccesedValue = accessor.getValue(xyz);
+
+        //SAMPLING WORKING
+        //openvdb::tools::GridSampler<openvdb::tree::ValueAccessor<openvdb::FloatTree>, openvdb::tools::BoxSampler > sampler(accessor, grid->transform());
+        openvdb::tools::GridSampler<openvdb::FloatTree, openvdb::tools::BoxSampler>  sampler(theGrid->floatGrid_->constTree(), theGrid->floatGrid_->transform());
+        pAccesedValue = sampler.wsSample(samplePosition);
+
+
+
+        *result = pAccesedValue;
     }
-    else
-    {
-        suffix = "";
-    }
-
-    VEX_VexOp::stringFree((char *)argv[2]);
-    VEX_VexOp::stringFree((char *)argv[3]);
-    VEX_VexOp::stringFree((char *)argv[4]);
-
-    argv[2] = (void *)VEX_VexOp::stringAlloc( fileName );
-    argv[3] = (void *)VEX_VexOp::stringAlloc( suffix );
-    argv[4] = (void *)VEX_VexOp::stringAlloc( fileExt );
 
 }
 
 void newVEXOp(void *)
 {
-    new VEX_VexOp ( "stringDivide@&SSS",
-                    stringDivide,
+    new VEX_VexOp ( "readVDB@&FSV",
+                    readVDB,
                     VEX_ALL_CONTEXT,
-                    NULL,
-                    NULL);
-    new VEX_VexOp ( "splitUDIMPath@SS&S&S&S",
-                    splitUDIMPath,
-                    VEX_ALL_CONTEXT,
-                    NULL,
-                    NULL);
+                    pre_readVDB,
+                    post_readVDB);
+                    //VEX_OPTIMIZE_0);
 
 }
 
-// time_Evaluate(int, void *argv[], void *)
-// {
-//     int         *result = (int *)argv[0];
-
-//     *result = time(0);
-// }

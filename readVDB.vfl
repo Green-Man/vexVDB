@@ -1,0 +1,12 @@
+surface readVDB(string filepath = "/home/green/Downloads/smoke.vdb")
+{
+    float val = 0;
+    //printf("----==== sample ====----\n");
+    vector pWorld = ptransform("space:world", P);
+    //printf("vex: %4f %4f %4f\n", pWorld.x, pWorld.y, pWorld.z );
+    val = readVDB( filepath, pWorld );
+
+
+    Of = val;
+    Cf = val;//*diffuse(N);
+}
