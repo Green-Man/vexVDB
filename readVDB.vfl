@@ -7,6 +7,6 @@ surface readVDB(string filepath = "/home/green/Downloads/smoke.vdb")
     val = readVDB( filepath, pWorld );
 
 
-    Of = {1,1,1};
-    Cf = val;
+    Of = val;
+    Cf = val;//*diffuse(N);
 }
