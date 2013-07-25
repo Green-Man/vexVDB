@@ -1,15 +1,4 @@
-# Makefile helper for GNU make utility.
-#
-# To use, create your own file named 'Makefile' with something like this:
-#	DSONAME = SOP_MySOP.so 
-#		 (or SOP_MySOP.dylib for Mac OSX)
-#		 (or SOP_MySOP.dll for Windows)
-#	SOURCES = SOP_MySOP.C
-#	include $(HFS)/toolkit/makefiles/Makefile.gnu
-# Then you just need to invoke make from the same directory.
-#
-# Complete list of variables used by this file:
-#   OPTIMIZER	Override the optimization level (optional, defaults to -O2)
+
 INCDIRS	= -I. -Iinclude/openvdb_dev
 LIBS = -lopenvdb
 SOURCES = vexVDB.cpp
@@ -17,6 +6,8 @@ DSONAME	= vexVDB.so
 #   APPNAME	Name of the desires output application (if applicable)
 INSTDIR = ~/houdini12.5
 #   ICONS	Name of the icon files to install (optionial)
+SHADERNAME = readVDB
+
 
 OS_NAME := $(shell uname -s)
 
@@ -109,7 +100,6 @@ install:	default	icons
 	@cp $(DSONAME) $(INSTDIR)/dso
 	@mkdir -p $(INSTDIR)/otls
 	vcc -L $(INSTDIR)/otls/$(SHADERNAME).otl $(SHADERNAME).vfl
->>>>>>> newone
 else
 install:	default icons
 endif
