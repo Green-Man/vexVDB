@@ -11,3 +11,5 @@
 *.lai
 *.la
 *.a
+
+include/openvdb_dev/
