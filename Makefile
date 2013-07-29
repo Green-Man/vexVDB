@@ -6,7 +6,9 @@ DSONAME	= vexVDB.so
 #   APPNAME	Name of the desires output application (if applicable)
 INSTDIR = ~/houdini12.5
 #   ICONS	Name of the icon files to install (optionial)
-SHADERNAME = readVDB
+OTLNAME = vexVDB
+SURFACENAME = readVDB
+FOGNAME = writeVDB
 
 
 OS_NAME := $(shell uname -s)
@@ -99,7 +101,8 @@ install:	default	icons
 	@mkdir -p $(INSTDIR)/dso
 	@cp $(DSONAME) $(INSTDIR)/dso
 	@mkdir -p $(INSTDIR)/otls
-	vcc -L $(INSTDIR)/otls/$(SHADERNAME).otl $(SHADERNAME).vfl
+	vcc -L $(INSTDIR)/otls/$(OTLNAME).otl $(SURFACENAME).vfl
+	vcc -L $(INSTDIR)/otls/$(OTLNAME).otl $(FOGNAME).vfl
 else
 install:	default icons
 endif

@@ -26,15 +26,17 @@ using namespace std;
 
 class vdbGrid {
 public:
-    vdbGrid();
+	vdbGrid();
+    vdbGrid(int mode);
     ~vdbGrid();
 
     bool                                        isFileOpened_;
     openvdb::GridBase::Ptr                      baseGrid_;
     openvdb::io::File*                          vdbFile_;
     string                                      fileName_;
-    openvdb::FloatGrid::Ptr                     floatGrid_; 
-    openvdb::tools::Filter<openvdb::FloatGrid>*  filteredGrid_;
+    openvdb::Vec3fGrid::Ptr                     typedGrid_; 
+    openvdb::GridPtrVec 						gridsVector_;
+    openvdb::tools::Filter<openvdb::Vec3fGrid>*  filteredGrid_;
 private:
 
 };
