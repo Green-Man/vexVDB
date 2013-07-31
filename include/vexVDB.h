@@ -26,7 +26,6 @@ using namespace std;
 
 class vdbGrid {
 public:
-	vdbGrid();
     vdbGrid(int mode);
     ~vdbGrid();
 
@@ -34,9 +33,9 @@ public:
     openvdb::GridBase::Ptr                      baseGrid_;
     openvdb::io::File*                          vdbFile_;
     string                                      fileName_;
-    openvdb::Vec3fGrid::Ptr                     typedGrid_; 
-    openvdb::GridPtrVec 						gridsVector_;
-    openvdb::tools::Filter<openvdb::Vec3fGrid>*  filteredGrid_;
+    openvdb::Vec3SGrid::Ptr                     typedGrid_; 
+    openvdb::GridPtrVec                         gridsVector_;
+    openvdb::tools::Filter<openvdb::Vec3SGrid>*  filteredGrid_;
 private:
 
 };

@@ -12,47 +12,52 @@ const string FILEPATH = "/home/green/Downloads/data.vdb";
 vdbGrid::vdbGrid(int mode){
     openvdb::initialize();
     vdbFile_ = new openvdb::io::File(FILEPATH);
-
+    printf("new file\n");
     if(mode == 1){
-        typedGrid_ = openvdb::Vec3fGrid::create();
+        typedGrid_ = openvdb::Vec3SGrid::create();
         typedGrid_->insertMeta("metadata", openvdb::FloatMetadata(42.0));
         typedGrid_->setGridClass(openvdb::GRID_FOG_VOLUME);
         typedGrid_->setName(GRIDNAME);
-        
-
-        gridsVector_.push_back(typedGrid_);
-        vdbFile_->write(gridsVector_);
+        printf("writing\n");
     }
     else{
         vdbFile_->open();
         baseGrid_ = vdbFile_->readGrid(GRIDNAME);
-        typedGrid_ = openvdb::gridPtrCast<openvdb::Vec3fGrid>(baseGrid_);
+        typedGrid_ = openvdb::gridPtrCast<openvdb::Vec3SGrid>(baseGrid_);
 
         //filteredGrid_ = new openvdb::tools::Filter<openvdb::Vec3fGrid>(*typedGrid_);
         //filteredGrid_->gaussian();
+        printf("reading\n");
     }
-
-
     isFileOpened_ = true;
 }
+
 
 vdbGrid::~vdbGrid(){
     vdbFile_->close();
     delete vdbFile_;
     delete filteredGrid_;
+    printf("closing file and deleting temp structures...\n");
 }
 
 static vdbGrid* singleGrid = NULL;
 
 static void* pre_writeVDB(){
     if(!singleGrid)
-        singleGrid = new vdbGrid();
+        singleGrid = new vdbGrid(1);
     return singleGrid;
     return NULL;
+    printf("pre_stage\n");
 }
 
 static void post_writeVDB(void *data){
     vdbGrid *grid = (vdbGrid*)data;
+
+    //writing the file
+    grid->gridsVector_.push_back(grid->typedGrid_);
+    grid->vdbFile_->write(grid->gridsVector_);
+    printf("...writing cmplete!\n");
+
     UT_ASSERT(grid == singleGrid);
     delete grid;
     singleGrid = NULL;
@@ -60,7 +65,7 @@ static void post_writeVDB(void *data){
 
 static void* pre_readVDB(){
     if(!singleGrid)
-        singleGrid = new vdbGrid();
+        singleGrid = new vdbGrid(0);
     return singleGrid;
     return NULL;
 }
@@ -73,6 +78,20 @@ static void post_readVDB(void *data){
 }
 
 void writeVDB(int argc, void *argv[], void *data){
+    openvdb::Vec3f* pos = (openvdb::Vec3f*)argv[0];
+    openvdb::Vec3f* Cd = (openvdb::Vec3f*)argv[1];
+
+
+    vdbGrid* theGrid = (vdbGrid*)data;
+
+    if(theGrid->isFileOpened_){
+        openvdb::Vec3SGrid::Accessor accessor = theGrid->typedGrid_->getAccessor();
+    //     const openvdb::Vec3d samplePosition(worldCoord->x(),worldCoord->y(),worldCoord->z());
+        const openvdb::Vec3i indexPosition = theGrid->typedGrid_->worldToIndex(*pos);
+        const openvdb::Coord ijk(indexPosition);
+        accessor.setValue(ijk, *Cd);
+        printf("writing value %f\n", Cd->x());
+    }
 
 }
 
@@ -83,7 +102,7 @@ void readVDB(int argc, void *argv[], void *data){
     const UT_Vector3* worldCoord = (const UT_Vector3 *)argv[2];
     vdbGrid* theGrid = (vdbGrid*)data;
 
-    openvdb::Vec3f pAccesedValue;
+    openvdb::Vec3f pAccesedValue(0,0,0);
     if(theGrid->isFileOpened_){
         openvdb::Vec3fGrid::Accessor accessor = theGrid->typedGrid_->getAccessor();
         const openvdb::Vec3d samplePosition(worldCoord->x(),worldCoord->y(),worldCoord->z());
@@ -101,7 +120,7 @@ void readVDB(int argc, void *argv[], void *data){
 
 void newVEXOp(void *)
 {
-    new VEX_VexOp ( "readVDB@&FSV",
+    new VEX_VexOp ( "readVDB@&VSV",
                     readVDB,
                     VEX_ALL_CONTEXT,
                     pre_readVDB,

@@ -1,10 +1,9 @@
-fog writeVDB(vector Cd = 0)
+fog writeVDB(vector Cd = 1)
 {
     //float val = 0;
     //vector pWorld = ptransform("space:world", P);
-    //val = readVDB( filepath, pWorld );
-    printf("foo\n");
-    writeVDB(P, Cd);
+    //printf("p = %g\n", Cf.x);
+    writeVDB(P, Cf);
 
     Of = Of;
     Cf = Cf;//*diffuse(N);
