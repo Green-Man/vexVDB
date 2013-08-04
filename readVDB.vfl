@@ -1,9 +1,9 @@
 surface readVDB(string filepath = "/home/green/Downloads/smoke.vdb")
 {
-    float val = 0;
+    vector val = 0;
     vector pWorld = ptransform("space:world", P);
     val = readVDB( filepath, pWorld );
 
-    Of = val;
-    Cf = val;//*diffuse(N);
+    Cf = val;
+    Of = 1;//luminance(val);//*diffuse(N);
 }

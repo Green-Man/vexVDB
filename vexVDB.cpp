@@ -12,22 +12,26 @@ const string FILEPATH = "/home/green/Downloads/data.vdb";
 vdbGrid::vdbGrid(int mode){
     openvdb::initialize();
     vdbFile_ = new openvdb::io::File(FILEPATH);
-    printf("new file\n");
     if(mode == 1){
         typedGrid_ = openvdb::Vec3SGrid::create();
         typedGrid_->insertMeta("metadata", openvdb::FloatMetadata(42.0));
+        typedGrid_->setTransform(openvdb::math::Transform::createLinearTransform(0.01));
         typedGrid_->setGridClass(openvdb::GRID_FOG_VOLUME);
         typedGrid_->setName(GRIDNAME);
-        printf("writing\n");
+
+        //const openvdb::Coord min(-1,-1,-1);
+        //const openvdb::Coord max(1,1,1);
+        //const openvdb::math::CoordBBox bbox(min, max);
+        typedGrid_->setBackground(openvdb::Vec3f(0,0,0));
+        //typedGrid_->fill(bbox, openvdb::Vec3f(1,0,0), true);
+        gridsVector_.push_back(typedGrid_);
     }
     else{
         vdbFile_->open();
         baseGrid_ = vdbFile_->readGrid(GRIDNAME);
         typedGrid_ = openvdb::gridPtrCast<openvdb::Vec3SGrid>(baseGrid_);
-
         //filteredGrid_ = new openvdb::tools::Filter<openvdb::Vec3fGrid>(*typedGrid_);
         //filteredGrid_->gaussian();
-        printf("reading\n");
     }
     isFileOpened_ = true;
 }
@@ -37,7 +41,6 @@ vdbGrid::~vdbGrid(){
     vdbFile_->close();
     delete vdbFile_;
     delete filteredGrid_;
-    printf("closing file and deleting temp structures...\n");
 }
 
 static vdbGrid* singleGrid = NULL;
@@ -47,19 +50,18 @@ static void* pre_writeVDB(){
         singleGrid = new vdbGrid(1);
     return singleGrid;
     return NULL;
-    printf("pre_stage\n");
 }
 
 static void post_writeVDB(void *data){
-    vdbGrid *grid = (vdbGrid*)data;
-
+    vdbGrid *theGrid = (vdbGrid*)data;
+    
+    theGrid->typedGrid_->pruneGrid();
     //writing the file
-    grid->gridsVector_.push_back(grid->typedGrid_);
-    grid->vdbFile_->write(grid->gridsVector_);
-    printf("...writing cmplete!\n");
+    
+    theGrid->vdbFile_->write(theGrid->gridsVector_);
 
-    UT_ASSERT(grid == singleGrid);
-    delete grid;
+    UT_ASSERT(theGrid == singleGrid);
+    delete theGrid;
     singleGrid = NULL;
 }
 
@@ -90,7 +92,7 @@ void writeVDB(int argc, void *argv[], void *data){
         const openvdb::Vec3i indexPosition = theGrid->typedGrid_->worldToIndex(*pos);
         const openvdb::Coord ijk(indexPosition);
         accessor.setValue(ijk, *Cd);
-        printf("writing value %f\n", Cd->x());
+        //printf("writing value %f\n", Cd->x());
     }
 
 }
@@ -111,7 +113,8 @@ void readVDB(int argc, void *argv[], void *data){
         //pAccesedValue = accessor.getValue(xyz);
         //SAMPLING WORKING
         //openvdb::tools::GridSampler<openvdb::tree::ValueAccessor<openvdb::Vec3fTree>, openvdb::tools::BoxSampler > sampler(accessor, grid->transform());
-        openvdb::tools::GridSampler<openvdb::Vec3fTree, openvdb::tools::BoxSampler>  sampler(theGrid->typedGrid_->constTree(), theGrid->typedGrid_->transform());
+        //openvdb::tools::GridSampler<openvdb::Vec3fTree, openvdb::tools::BoxSampler>  sampler(theGrid->typedGrid_->constTree(), theGrid->typedGrid_->transform());
+        openvdb::tools::GridSampler<openvdb::Vec3fTree, openvdb::tools::PointSampler>  sampler(theGrid->typedGrid_->constTree(), theGrid->typedGrid_->transform());
         pAccesedValue = sampler.wsSample(samplePosition);
 
         *result = pAccesedValue;

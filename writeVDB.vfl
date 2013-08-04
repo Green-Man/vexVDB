@@ -1,9 +1,10 @@
 fog writeVDB(vector Cd = 1)
 {
-    //float val = 0;
-    //vector pWorld = ptransform("space:world", P);
-    //printf("p = %g\n", Cf.x);
-    writeVDB(P, Cf);
+    if(Pz < 1000){
+	    vector pWorld = ptransform("space:world", P);
+	    writeVDB(pWorld, Cf);
+    }
+
 
     Of = Of;
     Cf = Cf;//*diffuse(N);
