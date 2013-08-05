@@ -1,17 +1,16 @@
 
 #include <include/vexVDB.h>
-
+#include <UT/UT_SpinLock.h>
 
 
 using namespace std;
 
 const string GRIDNAME = "Cd";
-const string FILEPATH = "/home/green/Downloads/data.vdb";
 
 //mode: 0 - reading, 1 - writing
-vdbGrid::vdbGrid(int mode){
+vdbGrid::vdbGrid(const char* path, int mode){
     openvdb::initialize();
-    vdbFile_ = new openvdb::io::File(FILEPATH);
+    vdbFile_ = new openvdb::io::File(path);
     if(mode == 1){
         typedGrid_ = openvdb::Vec3SGrid::create();
         typedGrid_->insertMeta("metadata", openvdb::FloatMetadata(42.0));
@@ -30,12 +29,11 @@ vdbGrid::vdbGrid(int mode){
         vdbFile_->open();
         baseGrid_ = vdbFile_->readGrid(GRIDNAME);
         typedGrid_ = openvdb::gridPtrCast<openvdb::Vec3SGrid>(baseGrid_);
-        //filteredGrid_ = new openvdb::tools::Filter<openvdb::Vec3fGrid>(*typedGrid_);
-        //filteredGrid_->gaussian();
+        filteredGrid_ = new openvdb::tools::Filter<openvdb::Vec3fGrid>(*typedGrid_);
+        filteredGrid_->mean(2);
     }
     isFileOpened_ = true;
 }
-
 
 vdbGrid::~vdbGrid(){
     vdbFile_->close();
@@ -45,10 +43,11 @@ vdbGrid::~vdbGrid(){
 
 static vdbGrid* singleGrid = NULL;
 
+
 static void* pre_writeVDB(){
-    if(!singleGrid)
-        singleGrid = new vdbGrid(1);
-    return singleGrid;
+    // if(!singleGrid)
+    //     singleGrid = new vdbGrid(1);
+    // return singleGrid;
     return NULL;
 }
 
@@ -65,24 +64,35 @@ static void post_writeVDB(void *data){
     singleGrid = NULL;
 }
 
-static void* pre_readVDB(){
+//static UT_Lock theMutex;
+
+
+void openVDB(int argc, void *argv[], void *data){
+    uintptr_t* handle = (uintptr_t*)argv[0];
+    int* openType = (int*)argv[1];
+
+    const char* vdbPath = (const char*)argv[1];
     if(!singleGrid)
-        singleGrid = new vdbGrid(0);
-    return singleGrid;
-    return NULL;
+        singleGrid = new vdbGrid(vdbPath, *openType);
+  
+    *handle = (uintptr_t)singleGrid;
+    //data = singleGrid;
+
+    //{
+        //UT_Lock::Scope  lock(theMutex);
+    //}
 }
 
-static void post_readVDB(void *data){
-    vdbGrid *grid = (vdbGrid*)data;
-    UT_ASSERT(grid == singleGrid);
-    delete grid;
+void closeVDB(void *data){
+    vdbGrid *theGrid = (vdbGrid*)data; //just a magick!
+    UT_ASSERT(theGrid == singleGrid);
+    delete theGrid;
     singleGrid = NULL;
-}
 
+}
 void writeVDB(int argc, void *argv[], void *data){
     openvdb::Vec3f* pos = (openvdb::Vec3f*)argv[0];
     openvdb::Vec3f* Cd = (openvdb::Vec3f*)argv[1];
-
 
     vdbGrid* theGrid = (vdbGrid*)data;
 
@@ -94,15 +104,15 @@ void writeVDB(int argc, void *argv[], void *data){
         accessor.setValue(ijk, *Cd);
         //printf("writing value %f\n", Cd->x());
     }
-
 }
 
 void readVDB(int argc, void *argv[], void *data){
-    openvdb::Vec3f* result;
-    result = (openvdb::Vec3f*)argv[0];
+    openvdb::Vec3f* result = (openvdb::Vec3f*)argv[0];
+
+    uintptr_t* handlePtr = (uintptr_t*)argv[1];
 
     const UT_Vector3* worldCoord = (const UT_Vector3 *)argv[2];
-    vdbGrid* theGrid = (vdbGrid*)data;
+    vdbGrid* theGrid = (vdbGrid*)*handlePtr;
 
     openvdb::Vec3f pAccesedValue(0,0,0);
     if(theGrid->isFileOpened_){
@@ -123,11 +133,11 @@ void readVDB(int argc, void *argv[], void *data){
 
 void newVEXOp(void *)
 {
-    new VEX_VexOp ( "readVDB@&VSV",
+    new VEX_VexOp ( "readVDB@&VIV",
                     readVDB,
                     VEX_ALL_CONTEXT,
-                    pre_readVDB,
-                    post_readVDB);
+                    NULL,
+                    NULL);
                     //VEX_OPTIMIZE_0);
     new VEX_VexOp ( "writeVDB@VV",
                     writeVDB,
@@ -135,6 +145,17 @@ void newVEXOp(void *)
                     pre_writeVDB,
                     post_writeVDB);
                     //VEX_OPTIMIZE_0);
-
+    new VEX_VexOp ( "openVDB@&ISI",
+                    openVDB,
+                    VEX_ALL_CONTEXT,
+                    NULL,
+                    closeVDB);
+                    //VEX_OPTIMIZE_0);
+    // new VEX_VexOp ( "closeVDB@I",
+    //                 closeVDB,
+    //                 VEX_ALL_CONTEXT,
+    //                 NULL,
+    //                 NULL);
+    //                 //VEX_OPTIMIZE_0);
 }
 

@@ -26,7 +26,7 @@ using namespace std;
 
 class vdbGrid {
 public:
-    vdbGrid(int mode);
+    vdbGrid(const char* path, int mode);
     ~vdbGrid();
 
     bool                                        isFileOpened_;
@@ -35,7 +35,7 @@ public:
     string                                      fileName_;
     openvdb::Vec3SGrid::Ptr                     typedGrid_; 
     openvdb::GridPtrVec                         gridsVector_;
-    openvdb::tools::Filter<openvdb::Vec3SGrid>*  filteredGrid_;
+    openvdb::tools::Filter<openvdb::Vec3SGrid>* filteredGrid_;
 private:
 
 };
