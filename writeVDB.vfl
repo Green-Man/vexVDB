@@ -1,8 +1,11 @@
-fog writeVDB(vector Cd = 1)
+fog writeVDB(	string filePath = "/home/green/Downloads/data.vdb";
+				vector Cd = 1)
 {
+	int handle = openVDB(filePath, 1);
+    
     if(Pz < 1000){
-	    vector pWorld = ptransform("space:world", P);
-	    writeVDB(pWorld, Cf);
+	    vector pWorld = ptransform("space:world", P);    
+	    writeVDB(handle, pWorld, Cf);
     }
 
 

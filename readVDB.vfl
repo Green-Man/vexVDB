@@ -3,9 +3,9 @@ surface readVDB(string filepath = "/home/green/Downloads/smoke.vdb")
     vector val = 0;
     vector pWorld = ptransform("space:world", P);
     // val = readVDB( filepath, pWorld );
-    int ptr = openVDB(filepath, 0);
-    val = readVDB( ptr, pWorld );
-    //closeVDB(ptr);
+    int handle = openVDB(filepath, 0);
+    val = readVDB( handle, pWorld );
+    //closeVDB(handle);
 
     Cf = val;
     Of = 1;

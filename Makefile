@@ -9,6 +9,8 @@ INSTDIR = ~/houdini12.5
 OTLNAME = vexVDB
 SURFACENAME = readVDB
 FOGNAME = writeVDB
+CXXFLAGS = -g
+LDFLAGS = -g
 
 
 OS_NAME := $(shell uname -s)
