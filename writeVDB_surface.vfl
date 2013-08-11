@@ -1,0 +1,59 @@
+#pragma range gridSize 0 0.01
+surface writeVDB_surface(   string filePath = "/home/green/Downloads/data.vdb";
+                    float gridSize = 0.005;
+                    vector Cd = 1)
+{
+    //int handle = openVDB(filePath, 1, gridSize);
+    string pcfile = "/home/green/Downloads/data.pc";
+    vector diffuseClr = 0;
+    vector surfp, surfn;
+    vector pWorld, nWorld;
+    int npoints = 10000;
+    int nfails = 0;
+    float radius = 0.05;
+    int pchandle = pcgenerate(pcfile, npoints);
+
+    if(Pz < 1000){
+        while (pcunshaded(pchandle, "P")){
+            if (nfails == 15){
+                radius *= 0.9;
+                nfails = 0;
+            }
+
+            vector r = set(nrandom("qstrat"), nrandom("qstrat"), 0);
+            if(sample_geometry(    r, r, 0.0,
+                                //"distribution", "area",
+                                "scope", "*",
+                                "pipeline", "displacement",
+                                "P", surfp,
+                                "N", surfn)){
+                pWorld = ptransform("space:world", surfp);
+                if(pcexport(pchandle, "P", pWorld, radius)){
+                    nWorld = ntransform("space:world", surfn);
+                    pcexport(pchandle, "N", nWorld);                    
+                    nfails = 0;
+                }
+                else{
+                    nfails++;
+                }                //pcexport(pchandle, "Cd", diffuse);   
+            }
+        }
+        pcclose(pchandle);
+
+        int readHandle = pcopen(pcfile, "Cd", 0);
+        while(pcunshaded(readHandle, "Cd")){
+            pcimport(readHandle, "N", nWorld);
+            pcimport(readHandle, "P", pWorld);
+            surfn = ntransform("space:world", "space:camera", nWorld);
+            diffuseClr = diffuse(surfn);
+            pcwrite(pcfile, "P", pWorld, "N", nWorld ,"Cd", diffuseClr);
+            pcexport(readHandle, "Cd", diffuseClr);
+
+        }
+        pcclose(readHandle);
+    }
+        //writeVDB(handle, pWorld, diffuse);
+
+    Of = Of;
+    Cf = pWorld;
+}
