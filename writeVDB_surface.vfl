@@ -1,59 +1,83 @@
 #pragma range gridSize 0 0.01
 surface writeVDB_surface(   string filePath = "/home/green/Downloads/data.vdb";
-                    float gridSize = 0.005;
-                    vector Cd = 1)
+                            float gridSize = 0.005;
+                            vector Cd = 1;
+                            export vector diffuseClr = 0)
 {
-    //int handle = openVDB(filePath, 1, gridSize);
-    string pcfile = "/home/green/Downloads/data.pc";
-    vector diffuseClr = 0;
-    vector surfp, surfn;
-    vector pWorld, nWorld;
-    int npoints = 10000;
-    int nfails = 0;
-    float radius = 0.05;
-    int pchandle = pcgenerate(pcfile, npoints);
+    string isShading = "";
+    rayimport("isShadingRay", isShading);
+    if(isShading != getobjectname()){
+        string pcfile = "/home/green/Downloads/data.pc";
+        float u,v;
+        float primid, subdid;
+        vector surfp, surfn, origin, sample;
+        vector pWorld, nWorld, pcDiffuse;
+        int npoints = 10000;
+        int nfails = 0;
+        float radius = 0.05;
+        int pchandle = pcgenerate(pcfile, npoints);
 
-    if(Pz < 1000){
-        while (pcunshaded(pchandle, "P")){
-            if (nfails == 15){
-                radius *= 0.9;
-                nfails = 0;
-            }
-
-            vector r = set(nrandom("qstrat"), nrandom("qstrat"), 0);
-            if(sample_geometry(    r, r, 0.0,
-                                //"distribution", "area",
-                                "scope", "*",
-                                "pipeline", "displacement",
-                                "P", surfp,
-                                "N", surfn)){
-                pWorld = ptransform("space:world", surfp);
-                if(pcexport(pchandle, "P", pWorld, radius)){
-                    nWorld = ntransform("space:world", surfn);
-                    pcexport(pchandle, "N", nWorld);                    
+        if(Pz < 1000){
+            while (pcunshaded(pchandle, "P")){
+                if (nfails == 15){
+                    radius *= 0.9;
                     nfails = 0;
                 }
-                else{
-                    nfails++;
-                }                //pcexport(pchandle, "Cd", diffuse);   
+
+                vector r = set(nrandom("qstrat"), nrandom("qstrat"), 0);
+                if(sample_geometry(    r, r, 0.0,
+                                    "scope", "*",
+                                    "pipeline", "displacement",
+                                    "P", surfp,
+                                    "N", surfn,
+                                    "ray:primid", primid,
+                                    "ray:subdid", subdid,
+                                    "s", u,
+                                    "t", v)){
+                    pWorld = ptransform("space:world", surfp);
+                    if(pcexport(pchandle, "P", pWorld, radius)){
+                        origin = set(primid, subdid, 0.0);
+                        sample = set(u, v, 0.0);
+                        pcexport(pchandle, "O", origin);
+                        pcexport(pchandle, "S", sample);
+
+                        nWorld = normalize(ntransform("space:world", surfn));
+                        pcexport(pchandle, "N", nWorld);              
+                        nfails = 0;
+                    }
+                    else{
+                        nfails++;
+                    }                //pcexport(pchandle, "Cd", diffuse);   
+                }
             }
-        }
-        pcclose(pchandle);
+            pcclose(pchandle);
 
-        int readHandle = pcopen(pcfile, "Cd", 0);
-        while(pcunshaded(readHandle, "Cd")){
-            pcimport(readHandle, "N", nWorld);
-            pcimport(readHandle, "P", pWorld);
-            surfn = ntransform("space:world", "space:camera", nWorld);
-            diffuseClr = diffuse(surfn);
-            pcwrite(pcfile, "P", pWorld, "N", nWorld ,"Cd", diffuseClr);
-            pcexport(readHandle, "Cd", diffuseClr);
+            int readHandle = pcopen(pcfile, "Cd", 0);
 
+            while(pcunshaded(readHandle, "Cd")){
+                pcimport(readHandle, "O", origin);
+                pcimport(readHandle, "S", sample);
+                pcimport(readHandle, "P", pWorld);
+                pcDiffuse = 0.0;
+
+                sample_geometry(origin, sample, 0.0, 
+                                "distribution", "parametric",
+                                "scope", "scope:self",
+                                "pipeline", "surface",
+                                "send:isShadingRay", getobjectname(),
+                                "diffuseClr", pcDiffuse);
+
+                pcwrite(pcfile, "P", pWorld, "Cd", pcDiffuse);
+                pcexport(readHandle, "Cd", diffuseClr);
+
+            }
+            pcclose(readHandle);
         }
-        pcclose(readHandle);
+    } // !isShading
+    else{
+        diffuseClr = diffuse(normalize(N));    
     }
-        //writeVDB(handle, pWorld, diffuse);
-
+            
     Of = Of;
-    Cf = pWorld;
+    Cf = diffuse(normalize(N));
 }
