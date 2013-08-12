@@ -4,15 +4,15 @@ surface writeVDB_surface(   string filePath = "/home/green/Downloads/data.vdb";
                             vector Cd = 1;
                             export vector diffuseClr = 0)
 {
-    string isShading = "";
+    int isShading = 0;
     rayimport("isShadingRay", isShading);
-    if(isShading != getobjectname()){
+    if(isShading == 0){
         string pcfile = "/home/green/Downloads/data.pc";
         float u,v;
         float primid, subdid;
         vector surfp, surfn, origin, sample;
         vector pWorld, nWorld, pcDiffuse;
-        int npoints = 10000;
+        int npoints = 1000000;
         int nfails = 0;
         float radius = 0.05;
         int pchandle = pcgenerate(pcfile, npoints);
@@ -27,23 +27,20 @@ surface writeVDB_surface(   string filePath = "/home/green/Downloads/data.vdb";
                 vector r = set(nrandom("qstrat"), nrandom("qstrat"), 0);
                 if(sample_geometry(    r, r, 0.0,
                                     "scope", "*",
-                                    "pipeline", "displacement",
+                                    "pipeline", "surface",
+                                    "send:isShadingRay", 1,
                                     "P", surfp,
-                                    "N", surfn,
-                                    "ray:primid", primid,
-                                    "ray:subdid", subdid,
-                                    "s", u,
-                                    "t", v)){
+                                    //"N", surfn,
+                                    "diffuseClr", pcDiffuse
+                                    //"ray:primid", primid,
+                                    //"ray:subdid", subdid,
+                                    //"s", u,
+                                    //"t", v
+                                    )){
                     pWorld = ptransform("space:world", surfp);
-                    if(pcexport(pchandle, "P", pWorld, radius)){
-                        origin = set(primid, subdid, 0.0);
-                        sample = set(u, v, 0.0);
-                        pcexport(pchandle, "O", origin);
-                        pcexport(pchandle, "S", sample);
-
-                        nWorld = normalize(ntransform("space:world", surfn));
-                        pcexport(pchandle, "N", nWorld);              
+                    if(pcexport(pchandle, "P", pWorld, radius)){             
                         nfails = 0;
+                        pcwrite(pcfile, "P", pWorld, "Cd", pcDiffuse);                        
                     }
                     else{
                         nfails++;
@@ -51,27 +48,6 @@ surface writeVDB_surface(   string filePath = "/home/green/Downloads/data.vdb";
                 }
             }
             pcclose(pchandle);
-
-            int readHandle = pcopen(pcfile, "Cd", 0);
-
-            while(pcunshaded(readHandle, "Cd")){
-                pcimport(readHandle, "O", origin);
-                pcimport(readHandle, "S", sample);
-                pcimport(readHandle, "P", pWorld);
-                pcDiffuse = 0.0;
-
-                sample_geometry(origin, sample, 0.0, 
-                                "distribution", "parametric",
-                                "scope", "scope:self",
-                                "pipeline", "surface",
-                                "send:isShadingRay", getobjectname(),
-                                "diffuseClr", pcDiffuse);
-
-                pcwrite(pcfile, "P", pWorld, "Cd", pcDiffuse);
-                pcexport(readHandle, "Cd", diffuseClr);
-
-            }
-            pcclose(readHandle);
         }
     } // !isShading
     else{
@@ -79,5 +55,5 @@ surface writeVDB_surface(   string filePath = "/home/green/Downloads/data.vdb";
     }
             
     Of = Of;
-    Cf = diffuse(normalize(N));
+    Cf = {0.1, 0, 0};
 }
